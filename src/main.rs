@@ -47,6 +47,24 @@ enum CurrentColor {
     Oklch(AlphaColor<Oklch>),
 }
 
+// impl Default for State {
+//     fn default() -> Self {
+//         let mut state = State {
+//             // initialize fields here
+//             ..Default::default()
+//         };
+
+//         // Register font here
+//         let roboto = include_bytes!("assets/EmilysCandy-Regular.ttf");
+//         state
+//             .font_cx() // or however your State gets access to font context
+//             .collection
+//             .add_font_bytes(roboto, Some("Roboto"));
+
+//         state
+//     }
+// }
+
 impl CurrentColor {
     fn components(&self) -> [f32; 4] {
         match self {
@@ -295,8 +313,18 @@ impl State {
 }
 
 fn main() {
+    let roboto = include_bytes!("assets/EmilysCandy-Regular.ttf");
+
     App::builder(State::default(), || {
         dynamic(|s: &mut State, _: &mut AppState<State>| {
+            // dynamic(|s: &mut State, cx: &mut AppState<State>| {
+            // let roboto = include_bytes!("assets/EmilysCandy-Regular.ttf");
+            // cx.add_font_bytes("Roboto", roboto.to_vec());
+
+            // cx.font_cx()
+            //     .collection
+            //     .add_font_bytes(roboto, Some("Roboto"));
+
             stack(vec![
                 rect(id!()).fill(s.theme(Theme::Gray0)).finish(),
                 column_spaced(
@@ -306,6 +334,7 @@ fn main() {
                             space().height(0.),
                             text(id!(), format!("idle-hue {}", include!("version.txt")))
                                 .fill(s.theme(Theme::Gray70))
+                                // .font_family("Roboto")
                                 .finish(),
                         ])
                         .height(10.),
@@ -363,6 +392,9 @@ fn main() {
     })
     .inner_size(450, 350)
     .resizable(false)
+    // .add_font_bytes(roboto, Some("Roboto"))
+    // .add_font_bytes(b"Roboto", roboto.to_vec()) // <-- attached to builder
+    .add_font_bytes(roboto, Some("Roboto"))
     .start()
 }
 
