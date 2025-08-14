@@ -11,11 +11,6 @@ use vello_svg::vello::{
     peniko::color::{AlphaColor, ColorSpaceTag, Oklch, Srgb, parse_color},
 };
 
-use std::sync::Once;
-
-// top-level Once so registration runs only once
-static FONT_INIT: Once = Once::new();
-
 const GRAY_0_D: Color = Color::from_rgb8(0x00, 0x00, 0x00); // #000000
 const GRAY_30_D: Color = Color::from_rgb8(0x1e, 0x1e, 0x1e); // #1e1e1e
 const GRAY_50_D: Color = Color::from_rgb8(0x3b, 0x3b, 0x3b); // #3b3b3b
@@ -51,24 +46,6 @@ enum CurrentColor {
     Srgb(AlphaColor<Srgb>),
     Oklch(AlphaColor<Oklch>),
 }
-
-// impl Default for State {
-//     fn default() -> Self {
-//         let mut state = State {
-//             // initialize fields here
-//             ..Default::default()
-//         };
-
-//         // Register font here
-//         let roboto = include_bytes!("assets/EmilysCandy-Regular.ttf");
-//         state
-//             .font_cx() // or however your State gets access to font context
-//             .collection
-//             .add_font_bytes(roboto, Some("Roboto"));
-
-//         state
-//     }
-// }
 
 impl CurrentColor {
     fn components(&self) -> [f32; 4] {
@@ -318,35 +295,8 @@ impl State {
 }
 
 fn main() {
-    // let roboto = include_bytes!("assets/EmilysCandy-Regular.ttf");
-    // let sankofa = include_bytes!("assets/SankofaDisplay-Regular.ttf");
-    // let sankofa = include_bytes!("assets/SankofaDisplay-Regular.ttf").to_vec();
-
     App::builder(State::default(), || {
-        // dynamic(|s: &mut State, _: &mut AppState<State>| {
-        dynamic(|s: &mut State, cx: &mut AppState<State>| {
-            // cx.register_font_bytes(sankofa.clone(), Some("SankofaDisplay-Regular"));
-
-            // dynamic(|s: &mut State, cx: &mut AppState<State>| {
-            // let roboto = include_bytes!("assets/EmilysCandy-Regular.ttf");
-            // cx.add_font_bytes("Roboto", roboto.to_vec());
-
-            // cx.font_cx()
-            //     .collection
-            //     .add_font_bytes(roboto, Some("Roboto"));
-
-            FONT_INIT.call_once(|| {
-                // include_bytes! returns &'static [u8]; convert to Vec<u8> for the UI's register function
-                let bytes = include_bytes!("assets/SankofaDisplay-Regular.ttf").to_vec();
-
-                // register_font_bytes is the helper we added to AppState in the ui lib.
-                // It will convert Vec<u8> -> Blob and call the parley registration under the hood.
-                cx.register_font_bytes(bytes, Some("SankofaDisplay-Regular"));
-
-                // debug print — visible when running with cargo run (unless windows_subsystem hides console)
-                eprintln!("Registered font: SankofaDisplay-Regular");
-            });
-
+        dynamic(|s: &mut State, _: &mut AppState<State>| {
             stack(vec![
                 rect(id!()).fill(s.theme(Theme::Gray0)).finish(),
                 column_spaced(
@@ -356,7 +306,7 @@ fn main() {
                             space().height(0.),
                             text(id!(), format!("idle-hue {}", include!("version.txt")))
                                 .fill(s.theme(Theme::Gray70))
-                                // .font_family("Roboto")
+                                .font_family("SankofaDisplay")
                                 .finish(),
                         ])
                         .height(10.),
@@ -370,8 +320,7 @@ fn main() {
                             text(id!(), s.hex.clone())
                                 .font_size(if s.oklch_mode { 35 } else { 40 })
                                 .font_weight(FontWeight::BOLD)
-                                // .font_family("Roboto")
-                                // .font_family("EmilysCandy")
+                                .font_family("SankofaDisplay")
                                 .fill(s.contrast_color())
                                 .view()
                                 .transition_duration(0.)
@@ -383,21 +332,12 @@ fn main() {
                                         theme_button(),
                                         space().height(0.),
                                         row(vec![
-                                            text(id!(), "Hello")
-                                                // .font_family("Roboto")
-                                                .font_family("SankofaDisplay-Regular")
+                                            text(id!(), "oklch")
+                                                .font_family("SankofaDisplay")
                                                 .fill(s.contrast_color())
                                                 .finish(),
                                             space().height(0.).width(10.),
                                             mode_toggle_button(),
-                                        ]),
-                                        stack(vec![
-                                            text(id!(), "Sankofa Test")
-                                                // .font_family("SankofaDisplay-Regular")
-                                                .font_family("SankofaDisplay-Regular.ttf")
-                                                .font_size(64)
-                                                .fill(Color::BLACK)
-                                                .finish(),
                                         ]),
                                     ],
                                 ),
@@ -408,7 +348,10 @@ fn main() {
                                         paste_button(),
                                         space().height(0.),
                                         if let Some(error) = s.error.blocking_lock().clone() {
-                                            text(id!(), error).fill(s.contrast_color()).finish()
+                                            text(id!(), error)
+                                                .fill(s.contrast_color())
+                                                .font_family("SankofaDisplay")
+                                                .finish()
                                         } else {
                                             empty()
                                         },
@@ -426,12 +369,12 @@ fn main() {
             ])
         })
     })
-    // .add_font_bytes(sankofa, Some("SankofaDisplay-Regular.ttf"))
     .inner_size(450, 350)
     .resizable(false)
-    // .add_font_bytes(roboto, Some("Roboto"))
-    // .add_font_bytes(b"Roboto", roboto.to_vec()) // <-- attached to builder
-    // .add_font_bytes(roboto, Some("Roboto"))
+    .add_font_bytes(
+        include_bytes!("assets/SankofaDisplay-Regular.ttf").to_vec(),
+        Some("SankofaDisplay"),
+    )
     .start()
 }
 
@@ -571,6 +514,7 @@ fn color_component_sliders<'n>() -> Node<'n, State, AppState<State>> {
                                 move |s, value| s.component_fields[i] = value,
                             ),
                         )
+                        .font_family("SankofaDisplay")
                         .fill(s.theme_inverted(Theme::Gray0))
                         .background_fill(Some(s.theme(Theme::Gray30)))
                         .cursor_fill(s.theme_inverted(Theme::Gray0))
